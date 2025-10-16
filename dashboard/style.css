@@ -1,0 +1,22 @@
+:root { --bg:#fafafa; --fg:#222; --muted:#666; --line:#ddd; --acc:#2b7cff; }
+* { box-sizing: border-box; }
+body { font-family: system-ui, Arial, sans-serif; background: var(--bg); color: var(--fg); margin: 24px; }
+h1 { margin: 0 0 16px; }
+.controls { display:flex; gap:8px; align-items:center; margin-bottom:12px; }
+input { padding:8px 10px; border:1px solid var(--line); border-radius:8px; min-width:280px; }
+button { padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:white; cursor:pointer; }
+button:hover { border-color:#bbb; }
+.spinner { width:14px; height:14px; border:2px solid #ccc; border-top-color: var(--acc); border-radius:50%; animation:spin 0.8s linear infinite; }
+.hidden { display:none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.log .bar { display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+.tiny { font-size:12px; color:var(--muted); }
+pre#logbox { background:#fff; border:1px solid var(--line); padding:10px; border-radius:8px; height:140px; overflow:auto; margin:6px 0 16px; }
+
+.table-controls { display:flex; gap:12px; align-items:center; margin:10px 0; }
+#resultsTable { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+#resultsTable th, #resultsTable td { padding:10px; border-bottom:1px solid var(--line); vertical-align: top; }
+#resultsTable th { background:#f3f3f3; text-align:left; cursor:pointer; user-select:none; }
+#resultsTable tr:hover td { background: #fcfcff; }
+#resultsTable a { color: var(--acc); text-decoration: none; }
