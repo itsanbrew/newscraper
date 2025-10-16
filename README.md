@@ -32,6 +32,9 @@ news-please extracts the following attributes from news articles. An examplary j
 * run news-please conveniently using its [**CLI**](#run-the-crawler-via-the-cli) mode
 * use it as a [**library**](#use-within-your-own-code-as-a-library) within your own software
 * extract articles from [**commoncrawl.org's news archive**](#news-archive-from-commoncrawlorg)
+* **NEW: Enhanced scraper with email enrichment** - Extract journalist contact information using RocketReach API
+* **Email validation** - Comprehensive email validation with syntax, MX, and optional SMTP checks
+* **CSV export** - Export articles, contacts, and merged data to CSV files
 
 ### Modes and use cases
 news-please supports three main use cases, which are explained in more detail in the following.
@@ -182,6 +185,71 @@ max_connections = 24
 ```
 
 This pipeline should also be compatible with AWS Elasticache and GCP MemoryStore
+
+## Enhanced Scraper with Email Enrichment
+
+This enhanced version includes additional functionality for journalist contact discovery and email validation.
+
+### Quick Start
+
+1. **Setup**
+```bash
+git clone https://github.com/itsanbrew/newscraper
+cd newscraper
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env and add your RocketReach API key
+```
+
+2. **Basic Usage**
+```bash
+# Extract articles with email enrichment (default behavior)
+python scripts/run_scraper.py --urls "https://www.bbc.com/news/article1,https://www.cnn.com/news/article2"
+
+# Extract from file with email enrichment
+python scripts/run_scraper.py --urls-file urls.txt
+
+# Full pipeline with SMTP validation
+python scripts/run_scraper.py --urls-file urls.txt --smtp-check --output-dir ./results
+
+# Disable email enrichment (basic articles only)
+python scripts/run_scraper.py --urls-file urls.txt --no-enrich
+```
+
+### Command Line Options
+
+- `--urls`: Comma-separated list of URLs to process
+- `--urls-file`: File containing URLs (one per line)
+- `--no-enrich`: Disable email enrichment (enabled by default)
+- `--smtp-check`: Enable SMTP email validation (slower)
+- `--output-dir`: Output directory for CSV files (default: ./output)
+
+### Output Files
+
+The scraper generates a single comprehensive CSV file:
+
+- **enriched_articles.csv**: Complete data with article metadata + contact information
+  - Article data: url, title, author, source_domain, date_publish, language
+  - Contact data: contact_email, contact_confidence, contact_title, contact_company
+  - Email validation: email_syntax_valid, email_mx_valid, email_smtp_valid, email_valid
+- **scraping_report.txt**: Summary report of the scraping session
+- **run.log**: Detailed execution log
+
+### Email Enrichment
+
+The email enrichment feature uses the RocketReach API to find journalist contact information:
+
+1. Extracts author names from articles
+2. Looks up email addresses by name and domain
+3. Validates email addresses (syntax, MX records, optional SMTP)
+4. Returns confidence scores for each match
+
+### Configuration
+
+Create a `.env` file with your API keys:
+```
+ROCKETREACH_API_KEY=your_rocketreach_api_key_here
+```
 
 ### What's next?
 We have collected a bunch of useful information for both [users](https://github.com/fhamborg/news-please/wiki/user-guide)  and [developers](https://github.com/fhamborg/news-please/wiki/developer-guide). As a user, you will most likely only deal with two files: [`sitelist.hjson`](https://github.com/fhamborg/news-please/wiki/user-guide#sitelisthjson) (to define sites to be crawled) and [`config.cfg`](https://github.com/fhamborg/news-please/wiki/configuration) (probably only rarely, in case you want to tweak the configuration).

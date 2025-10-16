@@ -1,17 +1,33 @@
-*.pyc
+# Output directory
+output/
 
-# the download folder for any saved, crawled data (testing)
-data/
-.resume_jobdir/
+# Environment variables
+.env
+
+# Python cache
 __pycache__/
-.idea/
-.DS_Store
-news-please.iml
-news_please.egg-info/
-build/
-.python-version
+*.pyc
+*.pyo
+*.pyd
+.Python
 
+# Virtual environment
 venv/
-.python-version
-build
-**.egg-info/
+env/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test outputs
+test_output*/
