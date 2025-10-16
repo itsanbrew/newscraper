@@ -151,4 +151,8 @@ def health_check():
     return jsonify({"status": "healthy", "message": "API server is running"})
 
 # For Vercel, we need to export the app
+if __name__ == '__main__':
+    app.run(debug=True)
+
+# Export for Vercel
 handler = app

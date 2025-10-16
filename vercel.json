@@ -2,18 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/*.py",
+      "src": "api/index.py",
       "use": "@vercel/python"
-    },
-    {
-      "src": "dashboard/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "dest": "/api/index.py"
     },
     {
       "src": "/dashboard/(.*)",
@@ -24,7 +20,9 @@
       "dest": "/dashboard/index.html"
     }
   ],
-  "env": {
-    "ROCKETREACH_API_KEY": "@rocketreach_api_key"
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30
+    }
   }
 }
