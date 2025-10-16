@@ -51,6 +51,7 @@ def run_scraper_async(urls, output_dir="./output"):
         scraping_logs.append(f"Error: {str(e)}")
 
 @app.route('/run_scraper', methods=['POST'])
+@app.route('/api/run_scraper', methods=['POST'])
 def run_scraper():
     """Start a scraping run."""
     global scraping_status
@@ -83,6 +84,7 @@ def run_scraper():
     return jsonify({"message": "Scraping started", "status": "running"})
 
 @app.route('/results', methods=['GET'])
+@app.route('/api/results', methods=['GET'])
 def get_results():
     """Get scraping results as JSON."""
     csv_path = "./output/enriched_articles.csv"
@@ -93,11 +95,14 @@ def get_results():
     try:
         # Read CSV and convert to JSON
         df = pd.read_csv(csv_path)
+        # Replace NaN values with empty strings for JSON compatibility
+        df = df.fillna('')
         return jsonify(df.to_dict('records'))
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/download/csv', methods=['GET'])
+@app.route('/api/download/csv', methods=['GET'])
 def download_csv():
     """Download CSV file."""
     csv_path = "./output/enriched_articles.csv"
@@ -108,6 +113,7 @@ def download_csv():
     return send_file(csv_path, as_attachment=True, download_name="enriched_articles.csv")
 
 @app.route('/download/json', methods=['GET'])
+@app.route('/api/download/json', methods=['GET'])
 def download_json():
     """Download JSON file."""
     csv_path = "./output/enriched_articles.csv"
@@ -129,16 +135,19 @@ def download_json():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/status', methods=['GET'])
+@app.route('/api/status', methods=['GET'])
 def get_status():
     """Get scraping status."""
     return jsonify(scraping_status)
 
 @app.route('/logs', methods=['GET'])
+@app.route('/api/logs', methods=['GET'])
 def get_logs():
     """Get scraping logs."""
     return '\n'.join(scraping_logs)
 
 @app.route('/delete_results', methods=['POST'])
+@app.route('/api/delete_results', methods=['POST'])
 def delete_results():
     """Delete all scraping results."""
     try:

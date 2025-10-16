@@ -3,17 +3,15 @@ import datetime
 import os
 import sys
 import urllib
+import requests
+from urllib.parse import urlparse
 
 from bs4.dammit import EncodingDetector
 from six.moves import urllib
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
-from newsplease.pipeline.extractor import article_extractor
-from newsplease.crawler.items import NewscrawlerItem
-from dotmap import DotMap
-from newsplease.pipeline.pipelines import ExtractedInformationStorage
-from newsplease.crawler.simple_crawler import SimpleCrawler
+from newsplease.NewsArticle import NewsArticle
 
 
 class EmptyResponseError(ValueError):
@@ -65,107 +63,90 @@ class NewsPlease:
     @staticmethod
     def from_html(html, url=None, download_date=None, fetch_images=True):
         """
-        Extracts relevant information from an HTML page given as a string. This function does not invoke scrapy but only
-        uses the article extractor. If you have the original URL make sure to provide it as this helps NewsPlease
-        to extract the publishing date and title.
-        :param html:
-        :param url:
-        :param download_date:
-        :param fetch_images:
-        :return:
+        Simplified HTML extraction using newspaper4k.
         """
         if bool(html) is False:
-            return {}
+            return None
 
-        extractor = article_extractor.Extractor(
-            (
-                ["newspaper_extractor"]
-                if fetch_images
-                else [("newspaper_extractor_no_images", "NewspaperExtractorNoImages")]
-            )
-            + ["readability_extractor", "date_extractor", "lang_detect_extractor"]
-        )
-
-        title_encoded = "".encode()
-        if not url:
-            url = ""
-
-        # if an url was given, we can use that as the filename
-        filename = urllib.parse.quote_plus(url) + ".json"
-
-        item = NewscrawlerItem()
-        item["spider_response"] = DotMap()
-        item["spider_response"].body = html
-        item["url"] = url
-        item["source_domain"] = (
-            urllib.parse.urlparse(url).hostname.encode() if url != "" else "".encode()
-        )
-        item["html_title"] = title_encoded
-        item["rss_title"] = title_encoded
-        item["local_path"] = None
-        item["filename"] = filename
-        item["download_date"] = download_date
-        item["modified_date"] = None
-        item = extractor.extract(item)
-
-        tmp_article = ExtractedInformationStorage.extract_relevant_info(item)
-        final_article = ExtractedInformationStorage.convert_to_class(tmp_article)
-        return final_article
+        try:
+            from newspaper import Article
+            import re
+            
+            # Create article object
+            article = Article(url)
+            article.set_html(html)
+            article.parse()
+            
+            # Extract domain from URL
+            domain = ""
+            if url:
+                parsed = urlparse(url)
+                domain = parsed.netloc
+            
+            # Create NewsArticle object
+            news_article = NewsArticle()
+            news_article.url = url or ""
+            news_article.title = article.title or ""
+            news_article.text = article.text or ""
+            news_article.description = article.meta_description or ""
+            news_article.author = ", ".join(article.authors) if article.authors else ""
+            news_article.date_publish = article.publish_date.isoformat() if article.publish_date else ""
+            news_article.source_domain = domain
+            news_article.language = article.meta_lang or ""
+            
+            return news_article
+            
+        except Exception as e:
+            print(f"Error extracting article: {e}")
+            return None
 
     @staticmethod
     def from_url(url, request_args=None, fetch_images=True):
         """
         Crawls the article from the url and extracts relevant information.
-        :param url:
-        :param request_args: optional arguments that `request` takes
-        :param fetch_images: whether to download images
-        :return: A NewsArticle object containing all the information of the article. Else, None.
-        :rtype: NewsArticle, None
         """
-        articles = NewsPlease.from_urls([url], request_args=request_args, fetch_images=fetch_images)
-        if url in articles.keys():
-            return articles[url]
-        else:
+        try:
+            from newspaper import Article
+            
+            # Create article object and download
+            article = Article(url)
+            article.download()
+            article.parse()
+            
+            # Extract domain from URL
+            domain = ""
+            if url:
+                parsed = urlparse(url)
+                domain = parsed.netloc
+            
+            # Create NewsArticle object
+            news_article = NewsArticle()
+            news_article.url = url
+            news_article.title = article.title or ""
+            news_article.text = article.text or ""
+            news_article.description = article.meta_description or ""
+            news_article.authors = article.authors if article.authors else []
+            news_article.date_publish = article.publish_date.isoformat() if article.publish_date else ""
+            news_article.source_domain = domain
+            news_article.language = article.meta_lang or ""
+            
+            return news_article
+            
+        except Exception as e:
+            print(f"Error fetching article from {url}: {e}")
             return None
 
     @staticmethod
     def from_urls(urls, request_args=None, fetch_images=True):
         """
         Crawls articles from the urls and extracts relevant information.
-        :param urls:
-        :param request_args: optional arguments that `request` takes
-        :param fetch_images: whether to download images
-        :return: A dict containing given URLs as keys, and extracted information as corresponding values.
         """
         results = {}
-        download_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        if len(urls) == 0:
-            # Nested blocks of code should not be left empty.
-            # When a block contains a comment, this block is not considered to be empty
-            pass
-        elif len(urls) == 1:
-            url = urls[0]
-            html = SimpleCrawler.fetch_url(url, request_args=request_args)
-            results[url] = NewsPlease.from_html(html, url, download_date, fetch_images)
-        else:
-            results = SimpleCrawler.fetch_urls(urls, request_args=request_args)
-
-            futures = {}
-            with cf.ProcessPoolExecutor() as exec:
-                for url in results:
-                    future = exec.submit(
-                        NewsPlease.from_html, results[url], url, download_date, fetch_images
-                    )
-                    futures[future] = url
-
-            for future in cf.as_completed(futures):
-                url = futures[future]
-                try:
-                    results[url] = future.result(timeout=request_args.get("timeout"))
-                except Exception as err:
-                    results[url] = {}
-
+        
+        for url in urls:
+            article = NewsPlease.from_url(url, request_args, fetch_images)
+            results[url] = article
+            
         return results
 
     @staticmethod

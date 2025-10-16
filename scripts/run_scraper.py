@@ -14,7 +14,7 @@ from tqdm import tqdm
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from newsplease_simple import NewsPlease
+from newsplease import NewsPlease
 from integrations.rocketreach import lookup_email_by_name_and_domain
 from utils.email_validation import validate_email_full
 from utils.exporters import write_articles_csv, write_contacts_csv, write_joined_csv, write_summary_report
