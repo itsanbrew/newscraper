@@ -22,7 +22,7 @@ class RocketReachAPI:
         if not self.api_key:
             raise ValueError("ROCKETREACH_API_KEY environment variable not set")
 
-        self.base_url = "https://api.rocketreach.co/v2"
+        self.base_url = "https://api.rocketreach.co/api/v2"
         self.session = requests.Session()
         self.session.headers.update({
             "Api-Key": self.api_key,
@@ -33,8 +33,22 @@ class RocketReachAPI:
         """Handle rate limiting with exponential backoff."""
         if response.status_code == 429:
             retry_after = int(response.headers.get('Retry-After', 60))
-            logger.warning(f"Rate limited. Waiting {retry_after} seconds...")
-            time.sleep(retry_after)
+            
+            # If rate limit is too long (> 1 hour), don't wait
+            if retry_after > 3600:  # 1 hour
+                logger.warning(f"Rate limited with very long wait time ({retry_after} seconds). Skipping wait.")
+                return False  # Don't retry
+            
+            # Cap the wait time to maximum 5 minutes to prevent hanging
+            max_wait = 300  # 5 minutes
+            wait_time = min(retry_after, max_wait)
+            
+            if retry_after > max_wait:
+                logger.warning(f"Rate limited. Retry-After is {retry_after} seconds, capping to {wait_time} seconds")
+            else:
+                logger.warning(f"Rate limited. Waiting {wait_time} seconds...")
+            
+            time.sleep(wait_time)
             return True
         return False
     
@@ -90,17 +104,26 @@ class RocketReachAPI:
         # Use People Lookup API with GET request and query parameters
         params = {
             "name": full_name,
-            "company_domain": clean_domain
+            "current_employer": clean_domain
         }
         
         logger.info(f"Looking up email for {full_name} at {clean_domain}")
         
         # Use the People Lookup API endpoint
-        result = self._make_request("person/lookup", params=params)
+        result = self._make_request("profile-company/lookup", params=params)
         
         if not result:
             logger.warning(f"No result for {full_name} at {clean_domain}")
-            return None
+            # Return a contact object indicating RocketReach was connected but no person found
+            return {
+                "full_name": full_name,
+                "email": "not found",
+                "confidence": 0.0,
+                "source": "rocketreach",
+                "domain": clean_domain,
+                "title": "not found",
+                "company": "not found"
+            }
         
         # Process results based on RocketReach API response structure
         if 'person' in result and result['person']:
@@ -126,7 +149,16 @@ class RocketReachAPI:
             }
         
         logger.warning(f"No email found for {full_name} at {clean_domain}")
-        return None
+        # Return a contact object indicating RocketReach was connected but no person found
+        return {
+            "full_name": full_name,
+            "email": "not found",
+            "confidence": 0.0,
+            "source": "rocketreach",
+            "domain": clean_domain,
+            "title": "not found",
+            "company": "not found"
+        }
 
 
 def lookup_email_by_name_and_domain(full_name: str, domain: str) -> Optional[Dict]:

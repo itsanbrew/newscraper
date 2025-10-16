@@ -15,7 +15,7 @@ def run_enhanced_scraper():
     scraper_script = script_dir / "scripts" / "run_scraper.py"
     
     # Test URL
-    test_url = "https://www.bbc.com/news/articles/c4gkm0243wzo"
+    test_url = "https://www.cnn.com/2025/10/16/politics/mamdani-cuomo-nyc-mayor-debate"
     
     print("=== ENHANCED NEWS SCRAPER TEST ===")
     print(f"Testing URL: {test_url}")

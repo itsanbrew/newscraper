@@ -117,11 +117,40 @@ def enrich_with_emails(articles: List[Dict], smtp_check: bool = False) -> List[D
     processed_authors = set()
     
     logging.info("Starting email enrichment...")
-    logging.warning("RocketReach API is not accessible - returning empty contacts")
-    logging.info("To enable email enrichment, please check your RocketReach API access")
     
-    # Return empty contacts since RocketReach API is not working
-    return []
+    for article in tqdm(articles, desc="Enriching with emails"):
+        author = article.get('author', '').strip()
+        domain = article.get('source_domain', '').strip()
+        
+        if not author or not domain:
+            continue
+            
+        # Skip if we've already processed this author
+        author_key = f"{author}_{domain}"
+        if author_key in processed_authors:
+            continue
+            
+        processed_authors.add(author_key)
+        
+        # Look up email using RocketReach
+        contact_info = lookup_email_by_name_and_domain(author, domain)
+        
+        if contact_info:
+            # Validate email if found
+            email = contact_info.get('email', '')
+            if email and email != 'not found':
+                validation_result = validate_email_full(email, smtp_check)
+                contact_info.update({
+                    'syntax_valid': validation_result.get('syntax_valid', False),
+                    'mx_valid': validation_result.get('mx_valid', False)
+                })
+            
+            contacts.append(contact_info)
+            logging.info(f"Found contact for {author} at {domain}")
+        else:
+            logging.debug(f"No contact found for {author} at {domain}")
+    
+    return contacts
 
 
 def main():
@@ -189,8 +218,8 @@ def main():
         # Merge article data with contact data (always include contact columns)
         enriched_article = article.copy()
         
-        # Check if RocketReach connected and returned data
-        rocketreach_connected = len(contacts) > 0 and any(contact.get('email') and contact.get('email') != 'not found' for contact in contacts)
+        # Check if RocketReach was used (if we have any contacts, it was connected)
+        rocketreach_connected = len(contacts) > 0
         
         if matching_contact:
             # Convert confidence to percentage
@@ -204,7 +233,7 @@ def main():
                 'contact_title': matching_contact.get('title', 'not found'),
                 'email_syntax_valid': matching_contact.get('syntax_valid', False),
                 'email_mx_valid': matching_contact.get('mx_valid', False),
-                'rocketreach_connected': True
+                'rocketreach_connected': rocketreach_connected
             })
         else:
             # No contact found, add "not found" fields
