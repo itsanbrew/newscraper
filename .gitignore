@@ -31,3 +31,4 @@ Thumbs.db
 
 # Test outputs
 test_output*/
+.vercel
