@@ -1,0 +1,25 @@
+# Ignore unnecessary files for Vercel deployment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+ENV/
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+*.log
+test_output*/
+output/
+.git/
+.gitignore
+README.md
+LICENSE.txt
+.env
+.env.example
+api_server.py

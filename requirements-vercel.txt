@@ -1,0 +1,22 @@
+# Core dependencies for Vercel deployment
+flask==2.3.3
+flask-cors==4.0.0
+pandas==2.1.1
+requests==2.31.0
+python-dotenv==1.0.0
+email-validator==2.0.0
+dnspython==2.4.2
+tqdm==4.66.1
+
+# News scraping dependencies
+newspaper4k==0.9.20210912
+readability-lxml==0.8.1
+python-dateutil==2.8.2
+lxml==4.9.3
+beautifulsoup4==4.12.2
+feedparser==6.0.10
+jieba3k==0.35.1
+Pillow==10.0.1
+cchardet==2.1.7
+faust-cchardet==2.1.18
+tldextract==3.6.0

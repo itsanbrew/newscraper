@@ -2,13 +2,13 @@
 const BACKEND_BASE_URL = "http://localhost:8080"; // or your Codespace URL
 const ENDPOINTS = {
   // change these if your backend uses different routes
-  run: "/run_scraper",          // POST { keyword?: string, urls?: string[] }
-  results: "/results",          // GET -> JSON array
-  downloadCsv: "/download/csv", // GET -> file
-  downloadJson: "/download/json", // GET -> file
+  run: "/api/run_scraper",          // POST { keyword?: string, urls?: string[] }
+  results: "/api/results",          // GET -> JSON array
+  downloadCsv: "/api/download/csv", // GET -> file
+  downloadJson: "/api/download/json", // GET -> file
   // optional: live log/status if your backend exposes them; otherwise this is ignored
-  logs: "/logs",                // GET text (optional)
-  status: "/status"             // GET {state:"running|done|error"} (optional)
+  logs: "/api/logs",                // GET text (optional)
+  status: "/api/status"             // GET {state:"running|done|error"} (optional)
 };
 
 // Alternative: Direct file access (for local development)
@@ -225,7 +225,7 @@ async function deleteResults() {
   
   try {
     log("Deleting results...");
-    const res = await safeFetch("/delete_results", { method: "POST" });
+    const res = await safeFetch("/api/delete_results", { method: "POST" });
     const data = await res.json();
     
     if (res.ok) {

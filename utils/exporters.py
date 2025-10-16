@@ -65,6 +65,97 @@ def write_articles_csv(records: List[Dict], path: str = "articles.csv") -> bool:
         return False
 
 
+def append_articles_csv(records: List[Dict], path: str = "articles.csv") -> bool:
+    """
+    Append articles data to existing CSV file, or create new file if it doesn't exist.
+    
+    Args:
+        records: List of article dictionaries
+        path: Output file path
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        if not records:
+            logger.warning("No article records to append")
+            return False
+        
+        # Create DataFrame from new records
+        new_df = pd.DataFrame(records)
+        
+        # Ensure required columns exist
+        required_columns = ['url', 'title', 'author', 'source_domain']
+        for col in required_columns:
+            if col not in new_df.columns:
+                new_df[col] = ''
+        
+        # Define column order (include contact data if present)
+        base_columns = ['url', 'title', 'author', 'source_domain', 'date_publish', 'language']
+        contact_columns = ['full_name', 'email', 'confidence', 'contact_title', 
+                          'email_syntax_valid', 'email_mx_valid', 'rocketreach_connected']
+        
+        # Start with base columns
+        columns = base_columns.copy()
+        
+        # Add contact columns if they exist in the data
+        for col in contact_columns:
+            if col in new_df.columns:
+                columns.append(col)
+        
+        # Use only available columns
+        available_columns = [col for col in columns if col in new_df.columns]
+        new_df = new_df[available_columns]
+        
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        
+        # Check if file exists
+        if os.path.exists(path):
+            # Read existing data
+            try:
+                existing_df = pd.read_csv(path)
+                
+                # Ensure both DataFrames have the same columns
+                all_columns = list(set(existing_df.columns.tolist() + new_df.columns.tolist()))
+                
+                # Add missing columns to both DataFrames
+                for col in all_columns:
+                    if col not in existing_df.columns:
+                        existing_df[col] = ''
+                    if col not in new_df.columns:
+                        new_df[col] = ''
+                
+                # Reorder columns to match
+                existing_df = existing_df[all_columns]
+                new_df = new_df[all_columns]
+                
+                # Combine DataFrames
+                combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+                
+                # Remove duplicates based on URL (keep first occurrence)
+                combined_df = combined_df.drop_duplicates(subset=['url'], keep='first')
+                
+                logger.info(f"Appending {len(records)} new articles to existing {len(existing_df)} articles")
+                
+            except Exception as e:
+                logger.warning(f"Could not read existing CSV file: {e}. Creating new file.")
+                combined_df = new_df
+        else:
+            # File doesn't exist, create new one
+            combined_df = new_df
+            logger.info(f"Creating new CSV file with {len(records)} articles")
+        
+        # Write combined CSV
+        combined_df.to_csv(path, index=False, encoding='utf-8')
+        logger.info(f"Total articles in CSV: {len(combined_df)}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to append articles CSV: {e}")
+        return False
+
+
 def write_contacts_csv(records: List[Dict], path: str = "contacts.csv") -> bool:
     """
     Write contacts data to CSV.
