@@ -148,7 +148,7 @@ def delete_results():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint."""
-    return jsonify({"status": "healthy", "message": "API server is running"})
+    return jsonify({"status": "healthy", "message": "API server is running", "version": "1.0.0"})
 
 # For Vercel, we need to export the app
 if __name__ == '__main__':
