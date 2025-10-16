@@ -20,3 +20,21 @@ pre#logbox { background:#fff; border:1px solid var(--line); padding:10px; border
 #resultsTable th { background:#f3f3f3; text-align:left; cursor:pointer; user-select:none; }
 #resultsTable tr:hover td { background: #fcfcff; }
 #resultsTable a { color: var(--acc); text-decoration: none; }
+
+.downloads button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.delete-btn {
+  background: #dc3545 !important;
+}
+
+.delete-btn:hover {
+  background: #c82333 !important;
+}

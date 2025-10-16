@@ -10,6 +10,10 @@ const ENDPOINTS = {
   logs: "/logs",                // GET text (optional)
   status: "/status"             // GET {state:"running|done|error"} (optional)
 };
+
+// Alternative: Direct file access (for local development)
+const USE_FILE_ACCESS = false; // Set to true to read CSV files directly
+const CSV_FILE_PATH = "../output/enriched_articles.csv";
 // ==========================================================
 
 const runBtn = document.getElementById("runBtn");
@@ -19,6 +23,7 @@ const spinner = document.getElementById("spinner");
 const autoscroll = document.getElementById("autoscroll");
 const filterInput = document.getElementById("filterInput");
 const tbody = document.querySelector("#resultsTable tbody");
+const deleteBtn = document.getElementById("deleteBtn");
 
 let rowsCache = []; // store raw results to enable filtering/sorting
 let sortState = { key: null, dir: 1 }; // 1 asc, -1 desc
@@ -80,13 +85,46 @@ function wait(ms){ return new Promise(r=>setTimeout(r, ms)); }
 
 async function loadResults() {
   try {
-    const res = await safeFetch(ENDPOINTS.results);
-    const data = await res.json();
-    rowsCache = Array.isArray(data) ? data : [];
+    if (USE_FILE_ACCESS) {
+      // Read CSV file directly
+      const res = await fetch(CSV_FILE_PATH);
+      if (!res.ok) {
+        log(`CSV file not found: ${CSV_FILE_PATH}`);
+        return;
+      }
+      const csvText = await res.text();
+      const data = parseCSV(csvText);
+      rowsCache = data;
+      log(`Loaded ${data.length} results from CSV`);
+    } else {
+      // Use backend API
+      const res = await safeFetch(ENDPOINTS.results);
+      const data = await res.json();
+      rowsCache = Array.isArray(data) ? data : [];
+    }
     renderTable();
   } catch (e) {
     log(`failed to load results: ${e.message}`);
   }
+}
+
+function parseCSV(csvText) {
+  const lines = csvText.trim().split('\n');
+  if (lines.length < 2) return [];
+  
+  const headers = lines[0].split(',').map(h => h.trim());
+  const rows = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+    const row = {};
+    headers.forEach((header, index) => {
+      row[header] = values[index] || '';
+    });
+    rows.push(row);
+  }
+  
+  return rows;
 }
 
 function renderTable() {
@@ -109,12 +147,19 @@ function renderTable() {
 
   tbody.innerHTML = "";
   for (const r of rows) {
+    // Debug logging for rocketreach_connected
+    console.log('RocketReach connected value:', r.rocketreach_connected, 'Type:', typeof r.rocketreach_connected);
+    
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${esc(r.title)}</td>
       <td>${esc(r.author)}</td>
       <td>${esc(r.source_domain)}</td>
       <td>${esc(r.date_publish)}</td>
+      <td>${esc(r.full_name)}</td>
+      <td>${esc(r.email)}</td>
+      <td>${esc(r.confidence)}</td>
+      <td>${(r.rocketreach_connected === 'True' || r.rocketreach_connected === true || r.rocketreach_connected === 'true') ? '✅' : '❌'}</td>
       <td>${r.url ? `<a href="${r.url}" target="_blank">open</a>` : ""}</td>
     `;
     tbody.appendChild(tr);
@@ -173,6 +218,30 @@ function saveBlob(blob, name){
   URL.revokeObjectURL(a.href);
 }
 
+async function deleteResults() {
+  if (!confirm("Are you sure you want to delete all results? This action cannot be undone.")) {
+    return;
+  }
+  
+  try {
+    log("Deleting results...");
+    const res = await safeFetch("/delete_results", { method: "POST" });
+    const data = await res.json();
+    
+    if (res.ok) {
+      log(data.message);
+      // Clear the table
+      rowsCache = [];
+      renderTable();
+      log("Results deleted successfully");
+    } else {
+      log(`Error: ${data.error || "Failed to delete results"}`);
+    }
+  } catch (e) {
+    log(`Error deleting results: ${e.message}`);
+  }
+}
+
 // optional polling (only runs if endpoints respond)
 function tryStartLogPolling(){
   stopLogPolling();
@@ -216,6 +285,7 @@ filterInput.addEventListener("input", renderTable);
 document.querySelector("#resultsTable thead").addEventListener("click", handleSortClick);
 document.getElementById("dlCsvBtn").addEventListener("click", () => download("csv"));
 document.getElementById("dlJsonBtn").addEventListener("click", () => download("json"));
+deleteBtn.addEventListener("click", deleteResults);
 
 // initial load if results already exist
 loadResults();

@@ -17,6 +17,8 @@ email-validator
 dnspython
 pandas
 tqdm
+flask
+flask-cors
 
 # Optional database support (if needed)
 PyMySQL>=0.7.9
